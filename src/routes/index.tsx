@@ -189,6 +189,7 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
   const [form, setForm] = useState<FormState>(empty);
   const [done, setDone] = useState(false);
   const submitFn = useServerFn(submitApplication);
+  type SubmitResult = { ok: boolean; error?: string };
   const mut = useMutation({
     mutationFn: (payload: FormState) => submitFn({ data: {
       ...payload,
@@ -204,7 +205,7 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
       freelanced_before: payload.freelanced_before || null,
       freelancing_interest: payload.freelancing_interest || null,
       motivation: payload.motivation || null,
-    } }),
+    } }) as Promise<SubmitResult>,
     onSuccess: (res) => {
       if (res.ok) { setDone(true); setForm(empty); }
       else toast.error(res.error ?? "Submission failed");
