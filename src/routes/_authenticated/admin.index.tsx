@@ -49,8 +49,10 @@ function Dashboard() {
   const approveFn = useServerFn(approveApplication);
   const rejectFn = useServerFn(rejectApplication);
 
+  type DecisionResult = { ok: boolean; email_sent?: boolean; error?: string };
+
   const approveMut = useMutation({
-    mutationFn: (id: string) => approveFn({ data: { id } }),
+    mutationFn: (id: string) => approveFn({ data: { id } }) as Promise<DecisionResult>,
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success(res.email_sent ? "Approved & email sent" : `Approved (email failed: ${res.error ?? "unknown"})`);
@@ -60,7 +62,7 @@ function Dashboard() {
   });
 
   const rejectMut = useMutation({
-    mutationFn: (id: string) => rejectFn({ data: { id } }),
+    mutationFn: (id: string) => rejectFn({ data: { id } }) as Promise<DecisionResult>,
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       toast.success(res.email_sent ? "Rejected & email sent" : `Rejected (email failed: ${res.error ?? "unknown"})`);
