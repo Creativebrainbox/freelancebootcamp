@@ -14,16 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          age: number | null
+          approved_at: string | null
+          city: string | null
+          created_at: string
+          department: string | null
+          education_level: string | null
+          email: string
+          freelanced_before: string | null
+          freelancing_interest: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          institution: string | null
+          level: string | null
+          motivation: string | null
+          participation_format: string
+          physical_address: string | null
+          rejected_at: string | null
+          state: string | null
+          status: string
+          whatsapp: string
+        }
+        Insert: {
+          age?: number | null
+          approved_at?: string | null
+          city?: string | null
+          created_at?: string
+          department?: string | null
+          education_level?: string | null
+          email: string
+          freelanced_before?: string | null
+          freelancing_interest?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          institution?: string | null
+          level?: string | null
+          motivation?: string | null
+          participation_format: string
+          physical_address?: string | null
+          rejected_at?: string | null
+          state?: string | null
+          status?: string
+          whatsapp: string
+        }
+        Update: {
+          age?: number | null
+          approved_at?: string | null
+          city?: string | null
+          created_at?: string
+          department?: string | null
+          education_level?: string | null
+          email?: string
+          freelanced_before?: string | null
+          freelancing_interest?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          institution?: string | null
+          level?: string | null
+          motivation?: string | null
+          participation_format?: string
+          physical_address?: string | null
+          rejected_at?: string | null
+          state?: string | null
+          status?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          application_id: string | null
+          email_type: string
+          error: string | null
+          id: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          application_id?: string | null
+          email_type: string
+          error?: string | null
+          id?: string
+          sent_at?: string
+          status: string
+        }
+        Update: {
+          application_id?: string | null
+          email_type?: string
+          error?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          bootcamp_name: string
+          created_at: string
+          daily_time: string
+          end_date: string | null
+          id: string
+          max_participants: number
+          registration_status: string
+          start_date: string | null
+          updated_at: string
+          venue_address: string
+          whatsapp_group_link: string
+        }
+        Insert: {
+          bootcamp_name?: string
+          created_at?: string
+          daily_time?: string
+          end_date?: string | null
+          id?: string
+          max_participants?: number
+          registration_status?: string
+          start_date?: string | null
+          updated_at?: string
+          venue_address?: string
+          whatsapp_group_link?: string
+        }
+        Update: {
+          bootcamp_name?: string
+          created_at?: string
+          daily_time?: string
+          end_date?: string | null
+          id?: string
+          max_participants?: number
+          registration_status?: string
+          start_date?: string | null
+          updated_at?: string
+          venue_address?: string
+          whatsapp_group_link?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_application_counts: {
+        Args: never
+        Returns: {
+          approved: number
+          total: number
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +332,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+    },
   },
 } as const
