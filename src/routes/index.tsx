@@ -181,7 +181,8 @@ const empty: FormState = {
   gender: "", age: "",
   education_level: "", institution: "", department: "", level: "",
   state: "", city: "", physical_address: "",
-  participation_format: "online",
+  participation_format: "physical",
+
   freelanced_before: "", freelancing_interest: "", motivation: "",
 };
 
