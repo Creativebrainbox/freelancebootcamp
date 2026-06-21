@@ -296,19 +296,13 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
             </FormSection>
 
             <FormSection title="Participation">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Format</label>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {(["online", "physical"] as const).map(opt => (
-                  <button key={opt} type="button" onClick={() => set("participation_format", opt)}
-                    className={`px-3 py-4 border text-xs font-mono uppercase tracking-widest transition-all ${
-                      form.participation_format === opt
-                        ? "border-primary bg-brand-muted text-foreground"
-                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                    }`}>{opt} session</button>
-                ))}
+              <div className="border border-primary/40 bg-brand-muted px-4 py-4">
+                <div className="font-mono text-[10px] uppercase tracking-widest text-primary">Format</div>
+                <div className="mt-1 text-sm text-foreground font-medium">Physical session only</div>
+                <p className="mt-2 text-xs text-muted-foreground">This cohort runs in person. Venue address is shared only with shortlisted participants.</p>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">Physical location is shared only with shortlisted participants.</p>
             </FormSection>
+
 
             <FormSection title="A few more things">
               <div className="grid md:grid-cols-2 gap-5">
