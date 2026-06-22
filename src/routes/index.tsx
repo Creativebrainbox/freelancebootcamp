@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
 const SKILLS = [
   { code: "0x01", name: "Website Design", blurb: "Build & ship modern sites for clients." },
   { code: "0x02", name: "Digital Marketing", blurb: "Run campaigns that actually convert." },
-  { code: "0x03", name: "Graphic Design", blurb: "Visual systems that sell brands." },
+  { code: "0x03", name: "Email Marketing", blurb: "Run inbox campaigns that drive sales." },
   { code: "0x04", name: "Content Writing", blurb: "Write copy that earns trust and clicks." },
   { code: "0x05", name: "Resume Writing", blurb: "Package your offer for premium clients." },
   { code: "0x06", name: "AI Tools for Freelancers", blurb: "Ship faster with the latest stack." },
