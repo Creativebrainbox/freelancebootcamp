@@ -57,12 +57,6 @@ export const submitApplication = createServerFn({ method: "POST" })
     const applicationId = crypto.randomUUID();
     const { error } = await sb.from("applications").insert({ ...data, id: applicationId });
     if (error) {
-      console.error("application insert error", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
       const msg = /duplicate|unique/i.test(error.message)
         ? "An application with this email or WhatsApp number already exists."
         : "Could not submit your application. Please try again.";
