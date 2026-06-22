@@ -20,7 +20,7 @@ function AdminLayout() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
       setEmail(u.user.email ?? "");
-      const { data } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+      const { data } = await supabase.from("user_roles").select("id").eq("user_id", u.user.id).eq("role", "admin").maybeSingle();
       setIsAdmin(Boolean(data));
     })();
   }, []);
