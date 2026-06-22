@@ -17,7 +17,7 @@ const applicationSchema = z.object({
   state: z.string().trim().max(80).optional().nullable(),
   city: z.string().trim().max(80).optional().nullable(),
   physical_address: z.string().trim().max(400).optional().nullable(),
-  participation_format: z.enum(["physical", "online"]),
+  participation_format: z.literal("physical"),
   freelanced_before: z.string().trim().max(20).optional().nullable(),
   freelancing_interest: z.string().trim().max(120).optional().nullable(),
   motivation: z.string().trim().max(2000).optional().nullable(),
@@ -35,6 +35,7 @@ export const submitApplication = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => applicationSchema.parse(d))
   .handler(async ({ data }) => {
     const sb = publicClient();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Check registration status + capacity
     const { data: settings } = await sb.from("settings").select("*").limit(1).maybeSingle();
@@ -43,14 +44,25 @@ export const submitApplication = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Registration is closed." };
     }
 
-    const { data: counts } = await sb.rpc("get_application_counts");
-    const approved = counts?.[0]?.approved ?? 0;
+    const { count: approvedCount, error: countError } = await supabaseAdmin
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved");
+    if (countError) return { ok: false as const, error: "Could not verify seat availability. Please try again." };
+    const approved = Number(approvedCount ?? 0);
     if (approved >= settings.max_participants) {
       return { ok: false as const, error: "Bootcamp is full." };
     }
 
-    const { data: inserted, error } = await sb.from("applications").insert(data).select("id").maybeSingle();
+    const applicationId = crypto.randomUUID();
+    const { error } = await sb.from("applications").insert({ ...data, id: applicationId });
     if (error) {
+      console.error("application insert error", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       const msg = /duplicate|unique/i.test(error.message)
         ? "An application with this email or WhatsApp number already exists."
         : "Could not submit your application. Please try again.";
@@ -62,9 +74,8 @@ export const submitApplication = createServerFn({ method: "POST" })
       const { sendEmail, emailTemplates } = await import("./email.server");
       const tpl = emailTemplates.received({ full_name: data.full_name, bootcamp_name: settings.bootcamp_name });
       const res = await sendEmail({ to: data.email, subject: tpl.subject, html: tpl.html });
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("email_logs").insert({
-        application_id: inserted?.id,
+        application_id: applicationId,
         email_type: "received",
         status: res.ok ? "sent" : "failed",
         error: res.ok ? null : res.error ?? null,
@@ -78,19 +89,21 @@ export const submitApplication = createServerFn({ method: "POST" })
 
 export const getPublicStats = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
-  const [{ data: settings }, { data: counts }] = await Promise.all([
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [{ data: settings }, { count: total }, { count: approved }] = await Promise.all([
     sb.from("settings").select("bootcamp_name,start_date,end_date,daily_time,registration_status,max_participants,venue_address").limit(1).maybeSingle(),
-    sb.rpc("get_application_counts"),
+    supabaseAdmin.from("applications").select("id", { count: "exact", head: true }),
+    supabaseAdmin.from("applications").select("id", { count: "exact", head: true }).eq("status", "approved"),
   ]);
-  const total = Number(counts?.[0]?.total ?? 0);
-  const approved = Number(counts?.[0]?.approved ?? 0);
+  const totalCount = Number(total ?? 0);
+  const approvedCount = Number(approved ?? 0);
   const max = settings?.max_participants ?? 0;
   return {
     settings: settings ?? null,
-    total_applications: total,
-    approved_count: approved,
-    remaining_slots: Math.max(0, max - approved),
-    is_full: approved >= max,
+    total_applications: totalCount,
+    approved_count: approvedCount,
+    remaining_slots: Math.max(0, max - approvedCount),
+    is_full: approvedCount >= max,
   };
 });
 
@@ -100,8 +113,8 @@ export const approveApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => decisionSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    const { data: adminRole } = await context.supabase.from("user_roles").select("id").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!adminRole) throw new Error("Forbidden");
 
     const { data: app, error } = await context.supabase
       .from("applications")
@@ -133,8 +146,8 @@ export const rejectApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => decisionSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
+    const { data: adminRole } = await context.supabase.from("user_roles").select("id").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+    if (!adminRole) throw new Error("Forbidden");
 
     const { data: app, error } = await context.supabase
       .from("applications")
