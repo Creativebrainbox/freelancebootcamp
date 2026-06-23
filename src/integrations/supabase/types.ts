@@ -19,6 +19,7 @@ export type Database = {
           age: number | null
           approved_at: string | null
           city: string | null
+          class_level: string | null
           created_at: string
           department: string | null
           education_level: string | null
@@ -27,21 +28,28 @@ export type Database = {
           freelancing_interest: string | null
           full_name: string
           gender: string | null
+          graduation_year: string | null
+          heard_about_bootcamp: string | null
+          heard_about_other: string | null
           id: string
           institution: string | null
+          invited_by: string | null
           level: string | null
           motivation: string | null
           participation_format: string
           physical_address: string | null
           rejected_at: string | null
+          school_name: string | null
           state: string | null
           status: string
+          study_track: string | null
           whatsapp: string
         }
         Insert: {
           age?: number | null
           approved_at?: string | null
           city?: string | null
+          class_level?: string | null
           created_at?: string
           department?: string | null
           education_level?: string | null
@@ -50,21 +58,28 @@ export type Database = {
           freelancing_interest?: string | null
           full_name: string
           gender?: string | null
+          graduation_year?: string | null
+          heard_about_bootcamp?: string | null
+          heard_about_other?: string | null
           id?: string
           institution?: string | null
+          invited_by?: string | null
           level?: string | null
           motivation?: string | null
           participation_format: string
           physical_address?: string | null
           rejected_at?: string | null
+          school_name?: string | null
           state?: string | null
           status?: string
+          study_track?: string | null
           whatsapp: string
         }
         Update: {
           age?: number | null
           approved_at?: string | null
           city?: string | null
+          class_level?: string | null
           created_at?: string
           department?: string | null
           education_level?: string | null
@@ -73,15 +88,21 @@ export type Database = {
           freelancing_interest?: string | null
           full_name?: string
           gender?: string | null
+          graduation_year?: string | null
+          heard_about_bootcamp?: string | null
+          heard_about_other?: string | null
           id?: string
           institution?: string | null
+          invited_by?: string | null
           level?: string | null
           motivation?: string | null
           participation_format?: string
           physical_address?: string | null
           rejected_at?: string | null
+          school_name?: string | null
           state?: string | null
           status?: string
+          study_track?: string | null
           whatsapp?: string
         }
         Relationships: []
