@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { approveApplication, rejectApplication } from "@/lib/applications.functions";
 import { toast } from "sonner";
@@ -26,12 +26,19 @@ interface Application {
   institution: string | null;
   department: string | null;
   level: string | null;
+  school_name: string | null;
+  study_track: string | null;
+  class_level: string | null;
+  graduation_year: string | null;
   state: string | null;
   city: string | null;
   physical_address: string | null;
   freelanced_before: string | null;
   freelancing_interest: string | null;
   motivation: string | null;
+  heard_about_bootcamp: string | null;
+  heard_about_other: string | null;
+  invited_by: string | null;
 }
 
 async function fetchApplications(): Promise<Application[]> {
@@ -44,7 +51,20 @@ function Dashboard() {
   const queryClient = useQueryClient();
   const { data: apps = [], isLoading } = useQuery({ queryKey: ["applications"], queryFn: fetchApplications });
   const [filter, setFilter] = useState<Status>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [viewing, setViewing] = useState<Application | null>(null);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("applications-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["applications"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const approveFn = useServerFn(approveApplication);
   const rejectFn = useServerFn(rejectApplication);
@@ -78,13 +98,33 @@ function Dashboard() {
     rejected: apps.filter(a => a.status === "rejected").length,
   };
 
-  const filtered = filter === "all" ? apps : apps.filter(a => a.status === filter);
+  const sourceCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of apps) {
+      const key = a.heard_about_bootcamp || "Unspecified";
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [apps]);
+
+  const sources = useMemo(() => ["all", ...sourceCounts.map(([s]) => s)], [sourceCounts]);
+
+  const filtered = apps.filter(a => {
+    if (filter !== "all" && a.status !== filter) return false;
+    if (sourceFilter !== "all" && (a.heard_about_bootcamp || "Unspecified") !== sourceFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const hay = `${a.full_name} ${a.email} ${a.whatsapp} ${a.heard_about_bootcamp ?? ""} ${a.heard_about_other ?? ""} ${a.invited_by ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Applications</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Review and decide on cohort applications.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Review and decide on cohort applications. Updates in real time.</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
@@ -94,35 +134,61 @@ function Dashboard() {
         <Stat label="Rejected" value={counts.rejected} accent={false} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {(["all", "pending", "approved", "rejected"] as Status[]).map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest border ${
-              filter === s ? "border-primary bg-brand-muted text-primary" : "border-border text-muted-foreground hover:text-foreground"
-            }`}>
-            {s}
-          </button>
-        ))}
+      {/* Referral analytics */}
+      <div className="border border-border bg-card p-5">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3">Referral / Discovery Sources</div>
+        {sourceCounts.length === 0 ? (
+          <div className="text-xs text-muted-foreground font-mono">No data yet.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {sourceCounts.map(([src, n]) => (
+              <div key={src} className="flex items-center justify-between border border-border bg-background/40 px-3 py-2">
+                <span className="text-xs text-foreground truncate">{src}</span>
+                <span className="text-xs font-mono font-bold text-primary">{n}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex flex-wrap gap-2">
+          {(["all", "pending", "approved", "rejected"] as Status[]).map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest border ${
+                filter === s ? "border-primary bg-brand-muted text-primary" : "border-border text-muted-foreground hover:text-foreground"
+              }`}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+          className="bg-background border border-border px-3 py-2 text-xs font-mono uppercase tracking-widest">
+          {sources.map(s => <option key={s} value={s}>{s === "all" ? "All Sources" : s}</option>)}
+        </select>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name / email / referral…"
+          className="flex-1 min-w-[200px] bg-background border border-border px-3 py-2 text-xs" />
       </div>
 
       <div className="border border-border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-background/50">
-              <Th>Name</Th><Th>Email</Th><Th>WhatsApp</Th><Th>Format</Th><Th>Status</Th><Th>Applied</Th><Th>Actions</Th>
+              <Th>Name</Th><Th>Email</Th><Th>WhatsApp</Th><Th>Heard From</Th><Th>Invited By</Th><Th>Status</Th><Th>Applied</Th><Th>Actions</Th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && (<tr><td colSpan={7} className="p-8 text-center text-muted-foreground font-mono text-xs">Loading…</td></tr>)}
+            {isLoading && (<tr><td colSpan={8} className="p-8 text-center text-muted-foreground font-mono text-xs">Loading…</td></tr>)}
             {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground font-mono text-xs">No applications</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground font-mono text-xs">No applications</td></tr>
             )}
             {filtered.map(a => (
               <tr key={a.id} className="border-b border-border last:border-0 hover:bg-background/30">
                 <Td className="text-foreground font-medium">{a.full_name}</Td>
                 <Td>{a.email}</Td>
                 <Td>{a.whatsapp}</Td>
-                <Td className="capitalize">{a.participation_format}</Td>
+                <Td>{a.heard_about_bootcamp ?? "—"}{a.heard_about_other ? ` (${a.heard_about_other})` : ""}</Td>
+                <Td>{a.invited_by ?? "—"}</Td>
                 <Td><StatusBadge status={a.status} /></Td>
                 <Td className="font-mono text-[11px]">{new Date(a.created_at).toLocaleDateString()}</Td>
                 <Td>
@@ -160,14 +226,20 @@ function Dashboard() {
               <Field label="Gender" value={viewing.gender} />
               <Field label="Age" value={viewing.age?.toString() ?? null} />
               <Field label="Education" value={viewing.education_level} />
-              <Field label="Institution" value={viewing.institution} />
+              <Field label="School / Institution" value={viewing.school_name || viewing.institution} />
+              <Field label="Study Track" value={viewing.study_track} />
+              <Field label="Class" value={viewing.class_level} />
               <Field label="Department" value={viewing.department} />
-              <Field label="Level" value={viewing.level} />
+              <Field label="Level / Year" value={viewing.level} />
+              <Field label="Graduation Year" value={viewing.graduation_year} />
               <Field label="State" value={viewing.state} />
               <Field label="City" value={viewing.city} />
               <Field label="Format" value={viewing.participation_format} />
               <Field label="Freelanced before" value={viewing.freelanced_before} />
               <Field label="Interest" value={viewing.freelancing_interest} />
+              <Field label="Heard From" value={viewing.heard_about_bootcamp} />
+              <Field label="Heard – Other" value={viewing.heard_about_other} />
+              <Field label="Invited By" value={viewing.invited_by} />
               <div className="md:col-span-2"><Field label="Address" value={viewing.physical_address} /></div>
               <div className="md:col-span-2"><Field label="Motivation" value={viewing.motivation} multiline /></div>
             </div>
