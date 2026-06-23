@@ -23,9 +23,15 @@ const SKILLS = [
   { code: "0x03", name: "Email Marketing", blurb: "Run inbox campaigns that drive sales." },
   { code: "0x04", name: "Content Writing", blurb: "Write copy that earns trust and clicks." },
   { code: "0x05", name: "Resume Writing", blurb: "Package your offer for premium clients." },
-  { code: "0x06", name: "AI Tools for Freelancers", blurb: "Ship faster with the latest stack." },
-  { code: "0x07", name: "Client Acquisition", blurb: "Find, pitch, and close real customers." },
-  { code: "0x08", name: "Freelancing Fundamentals", blurb: "Pricing, contracts, and operations." },
+  { code: "0x06", name: "AI Prompt Engineering", blurb: "Direct AI to produce client-ready work." },
+  { code: "0x07", name: "AI Video Editing", blurb: "Edit faster with AI-powered tools." },
+  { code: "0x08", name: "Client Acquisition", blurb: "Find, pitch, and close real customers." },
+];
+
+const HEARD_OPTIONS = [
+  "Friend", "WhatsApp Group", "WhatsApp Status", "Facebook", "Instagram", "TikTok",
+  "School Announcement", "Campus Ambassador", "Physical Flyer", "Event Promotion",
+  "Lecturer / Teacher", "Previous Participant", "Organization Member", "Other",
 ];
 
 function Landing() {
@@ -172,18 +178,21 @@ interface FormState {
   full_name: string; email: string; whatsapp: string;
   gender: string; age: string;
   education_level: string; institution: string; department: string; level: string;
+  school_name: string; study_track: string; class_level: string; graduation_year: string;
   state: string; city: string; physical_address: string;
-  participation_format: "physical" | "online";
+  participation_format: "physical";
   freelanced_before: string; freelancing_interest: string; motivation: string;
+  heard_about_bootcamp: string; heard_about_other: string; invited_by: string;
 }
 const empty: FormState = {
   full_name: "", email: "", whatsapp: "",
   gender: "", age: "",
   education_level: "", institution: "", department: "", level: "",
+  school_name: "", study_track: "", class_level: "", graduation_year: "",
   state: "", city: "", physical_address: "",
   participation_format: "physical",
-
   freelanced_before: "", freelancing_interest: "", motivation: "",
+  heard_about_bootcamp: "", heard_about_other: "", invited_by: "",
 };
 
 function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string }) {
@@ -200,12 +209,19 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
       institution: payload.institution || null,
       department: payload.department || null,
       level: payload.level || null,
+      school_name: payload.school_name || null,
+      study_track: payload.study_track || null,
+      class_level: payload.class_level || null,
+      graduation_year: payload.graduation_year || null,
       state: payload.state || null,
       city: payload.city || null,
       physical_address: payload.physical_address || null,
       freelanced_before: payload.freelanced_before || null,
       freelancing_interest: payload.freelancing_interest || null,
       motivation: payload.motivation || null,
+      heard_about_bootcamp: payload.heard_about_bootcamp || null,
+      heard_about_other: payload.heard_about_bootcamp === "Other" ? (payload.heard_about_other || null) : null,
+      invited_by: payload.invited_by || null,
     } }) as Promise<SubmitResult>,
     onSuccess: (res) => {
       if (res.ok) { setDone(true); setForm(empty); }
@@ -250,6 +266,12 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
     );
   }
 
+  const edu = form.education_level;
+  const showSecondary = edu === "Secondary";
+  const showUndergrad = edu === "Undergraduate" || edu === "Diploma";
+  const showGraduate = edu === "Graduate" || edu === "Postgraduate";
+  const showOther = edu === "Other";
+
   return (
     <section id="apply" className="py-24 bg-background">
       <div className="max-w-4xl mx-auto px-6">
@@ -277,10 +299,37 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
             <FormSection title="Education">
               <div className="grid md:grid-cols-2 gap-5">
                 <Select label="Education Level" value={form.education_level} onChange={v => set("education_level", v)}
-                  options={["", "Secondary", "Diploma", "Undergraduate", "Graduate", "Postgraduate"]} />
-                <Field label="Institution Name" value={form.institution} onChange={v => set("institution", v)} />
-                <Field label="Department / Course" value={form.department} onChange={v => set("department", v)} />
-                <Field label="Level / Year" value={form.level} onChange={v => set("level", v)} />
+                  options={["", "Secondary", "Diploma", "Undergraduate", "Graduate", "Postgraduate", "Other"]} />
+
+                {showSecondary && (
+                  <>
+                    <Field label="School Name" value={form.school_name} onChange={v => set("school_name", v)} />
+                    <Select label="Study Track" value={form.study_track} onChange={v => set("study_track", v)}
+                      options={["", "Science", "Commercial", "Arts"]} />
+                    <Select label="Class" value={form.class_level} onChange={v => set("class_level", v)}
+                      options={["", "SS1", "SS2", "SS3"]} />
+                  </>
+                )}
+
+                {showUndergrad && (
+                  <>
+                    <Field label="Institution Name" value={form.institution} onChange={v => set("institution", v)} />
+                    <Field label="Department / Course" value={form.department} onChange={v => set("department", v)} />
+                    <Field label="Level / Year" value={form.level} onChange={v => set("level", v)} />
+                  </>
+                )}
+
+                {showGraduate && (
+                  <>
+                    <Field label="Institution Name" value={form.institution} onChange={v => set("institution", v)} />
+                    <Field label="Department / Course" value={form.department} onChange={v => set("department", v)} />
+                    <Field label="Graduation Year" value={form.graduation_year} onChange={v => set("graduation_year", v)} placeholder="2024" />
+                  </>
+                )}
+
+                {showOther && (
+                  <Field label="Institution / Program" value={form.institution} onChange={v => set("institution", v)} />
+                )}
               </div>
             </FormSection>
 
@@ -304,7 +353,6 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
               </div>
             </FormSection>
 
-
             <FormSection title="A few more things">
               <div className="grid md:grid-cols-2 gap-5">
                 <Select label="Have you freelanced before?" value={form.freelanced_before} onChange={v => set("freelanced_before", v)}
@@ -316,6 +364,17 @@ function Apply({ closed, bootcampName }: { closed: boolean; bootcampName: string
                 <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Why do you want to join?</label>
                 <textarea value={form.motivation} onChange={e => set("motivation", e.target.value)} rows={4}
                   className="mt-2 w-full bg-background border border-border px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-primary" />
+              </div>
+            </FormSection>
+
+            <FormSection title="How did you hear about us?">
+              <div className="grid md:grid-cols-2 gap-5">
+                <Select label="How did you hear about this bootcamp?" value={form.heard_about_bootcamp} onChange={v => set("heard_about_bootcamp", v)}
+                  options={["", ...HEARD_OPTIONS]} />
+                {form.heard_about_bootcamp === "Other" && (
+                  <Field label="Please specify" value={form.heard_about_other} onChange={v => set("heard_about_other", v)} />
+                )}
+                <Field label="Who invited you? (Optional)" value={form.invited_by} onChange={v => set("invited_by", v)} placeholder="Name of inviter / referrer" />
               </div>
             </FormSection>
 
