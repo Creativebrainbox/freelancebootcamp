@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenticated/admin.admins'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -52,12 +53,19 @@ const AuthenticatedAdminSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAdminsRoute =
+  AuthenticatedAdminAdminsRouteImport.update({
+    id: '/admins',
+    path: '/admins',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -65,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -75,6 +84,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -85,10 +95,17 @@ export interface FileRouteTypes {
     | '/auth'
     | '/sitemap.xml'
     | '/admin'
+    | '/admin/admins'
     | '/admin/settings'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/sitemap.xml' | '/admin/settings' | '/admin'
+  to:
+    | '/'
+    | '/auth'
+    | '/sitemap.xml'
+    | '/admin/admins'
+    | '/admin/settings'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -96,6 +113,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/admin/admins'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -158,15 +176,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/admins': {
+      id: '/_authenticated/admin/admins'
+      path: '/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AuthenticatedAdminAdminsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAdminsRoute: typeof AuthenticatedAdminAdminsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAdminsRoute: AuthenticatedAdminAdminsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }

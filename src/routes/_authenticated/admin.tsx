@@ -63,6 +63,7 @@ SELECT id, 'admin' FROM auth.users WHERE email = '${email}';`}</pre>
             </div>
             <div className="flex items-center gap-1">
               <NavLink to="/admin" active={pathname === "/admin"}>Applications</NavLink>
+              <NavLink to="/admin/admins" active={pathname.startsWith("/admin/admins")}>Admins</NavLink>
               <NavLink to="/admin/settings" active={pathname.startsWith("/admin/settings")}>Settings</NavLink>
             </div>
           </div>
