@@ -41,10 +41,9 @@ function publicClient() {
 export const submitApplication = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => applicationSchema.parse(d))
   .handler(async ({ data }) => {
-    const sb = publicClient();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: settings } = await sb.from("settings").select("*").limit(1).maybeSingle();
+    const { data: settings } = await supabaseAdmin.from("settings").select("*").limit(1).maybeSingle();
     if (!settings) return { ok: false as const, error: "Bootcamp not configured yet." };
     if (settings.registration_status !== "open") {
       return { ok: false as const, error: "Registration is closed." };
