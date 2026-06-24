@@ -109,6 +109,21 @@ function Dashboard() {
 
   const sources = useMemo(() => ["all", ...sourceCounts.map(([s]) => s)], [sourceCounts]);
 
+  const inviterCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    const display = new Map<string, string>();
+    for (const a of apps) {
+      const raw = (a.invited_by ?? "").trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      if (!display.has(key)) display.set(key, raw);
+    }
+    return [...counts.entries()]
+      .map(([k, n]) => [display.get(k) ?? k, n] as [string, number])
+      .sort((a, b) => b[1] - a[1]);
+  }, [apps]);
+
   const filtered = apps.filter(a => {
     if (filter !== "all" && a.status !== filter) return false;
     if (sourceFilter !== "all" && (a.heard_about_bootcamp || "Unspecified") !== sourceFilter) return false;
@@ -150,6 +165,24 @@ function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Inviter leaderboard */}
+      <div className="border border-border bg-card p-5">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3">Top Inviters (referral leaderboard)</div>
+        {inviterCounts.length === 0 ? (
+          <div className="text-xs text-muted-foreground font-mono">No invites recorded yet.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {inviterCounts.map(([name, n]) => (
+              <div key={name} className="flex items-center justify-between border border-border bg-background/40 px-3 py-2">
+                <span className="text-xs text-foreground truncate">{name}</span>
+                <span className="text-xs font-mono font-bold text-primary">{n} {n === 1 ? "invite" : "invites"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
 
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-wrap gap-2">
