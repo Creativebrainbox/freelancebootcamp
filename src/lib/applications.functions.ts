@@ -99,7 +99,7 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(async ()
   const sb = publicClient();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [{ data: settings }, { count: total }, { count: approved }] = await Promise.all([
-    sb.from("settings").select("bootcamp_name,start_date,end_date,daily_time,registration_status,max_participants,venue_address").limit(1).maybeSingle(),
+    sb.rpc("get_public_settings").maybeSingle(),
     supabaseAdmin.from("applications").select("id", { count: "exact", head: true }),
     supabaseAdmin.from("applications").select("id", { count: "exact", head: true }).eq("status", "approved"),
   ]);
