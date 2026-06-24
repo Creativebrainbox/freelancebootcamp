@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { approveApplication, rejectApplication } from "@/lib/applications.functions";
 import { toast } from "sonner";
@@ -49,22 +49,17 @@ async function fetchApplications(): Promise<Application[]> {
 
 function Dashboard() {
   const queryClient = useQueryClient();
-  const { data: apps = [], isLoading } = useQuery({ queryKey: ["applications"], queryFn: fetchApplications });
+  const { data: apps = [], isLoading } = useQuery({
+    queryKey: ["applications"],
+    queryFn: fetchApplications,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+  });
   const [filter, setFilter] = useState<Status>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [viewing, setViewing] = useState<Application | null>(null);
 
-  // Realtime subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel("applications-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "applications" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["applications"] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
 
   const approveFn = useServerFn(approveApplication);
   const rejectFn = useServerFn(rejectApplication);

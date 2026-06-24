@@ -41,10 +41,9 @@ function publicClient() {
 export const submitApplication = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => applicationSchema.parse(d))
   .handler(async ({ data }) => {
-    const sb = publicClient();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: settings } = await sb.from("settings").select("*").limit(1).maybeSingle();
+    const { data: settings } = await supabaseAdmin.from("settings").select("*").limit(1).maybeSingle();
     if (!settings) return { ok: false as const, error: "Bootcamp not configured yet." };
     if (settings.registration_status !== "open") {
       return { ok: false as const, error: "Registration is closed." };
@@ -71,7 +70,7 @@ export const submitApplication = createServerFn({ method: "POST" })
     }
 
     const applicationId = crypto.randomUUID();
-    const { error } = await sb.from("applications").insert({ ...data, id: applicationId });
+    const { error } = await supabaseAdmin.from("applications").insert({ ...data, id: applicationId });
     if (error) {
       const msg = /duplicate|unique/i.test(error.message)
         ? "An application with this email or WhatsApp number already exists."
@@ -100,7 +99,7 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(async ()
   const sb = publicClient();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [{ data: settings }, { count: total }, { count: approved }] = await Promise.all([
-    sb.from("settings").select("bootcamp_name,start_date,end_date,daily_time,registration_status,max_participants,venue_address").limit(1).maybeSingle(),
+    sb.rpc("get_public_settings").maybeSingle(),
     supabaseAdmin.from("applications").select("id", { count: "exact", head: true }),
     supabaseAdmin.from("applications").select("id", { count: "exact", head: true }).eq("status", "approved"),
   ]);
