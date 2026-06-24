@@ -109,6 +109,21 @@ function Dashboard() {
 
   const sources = useMemo(() => ["all", ...sourceCounts.map(([s]) => s)], [sourceCounts]);
 
+  const inviterCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    const display = new Map<string, string>();
+    for (const a of apps) {
+      const raw = (a.invited_by ?? "").trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      if (!display.has(key)) display.set(key, raw);
+    }
+    return [...counts.entries()]
+      .map(([k, n]) => [display.get(k) ?? k, n] as [string, number])
+      .sort((a, b) => b[1] - a[1]);
+  }, [apps]);
+
   const filtered = apps.filter(a => {
     if (filter !== "all" && a.status !== filter) return false;
     if (sourceFilter !== "all" && (a.heard_about_bootcamp || "Unspecified") !== sourceFilter) return false;
