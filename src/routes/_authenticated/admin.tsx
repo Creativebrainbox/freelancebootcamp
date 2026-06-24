@@ -1,10 +1,18 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { checkAdminAccess } from "@/lib/admin-guard.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin Dashboard" }, { name: "robots", content: "noindex" }] }),
+  beforeLoad: async () => {
+    const result = await checkAdminAccess();
+    if (!result.isAdmin) {
+      throw redirect({ to: "/admin/access-denied" as never });
+    }
+    return { adminEmail: result.email ?? "" };
+  },
+  loader: ({ context }) => ({ email: (context as { adminEmail?: string }).adminEmail ?? "" }),
   component: AdminLayout,
 });
 
@@ -12,44 +20,13 @@ function AdminLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: s => s.location.pathname });
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [email, setEmail] = useState<string>("");
-
-  useEffect(() => {
-    (async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return;
-      setEmail(u.user.email ?? "");
-      const { data } = await supabase.from("user_roles").select("id").eq("user_id", u.user.id).eq("role", "admin").maybeSingle();
-      setIsAdmin(Boolean(data));
-    })();
-  }, []);
+  const { email } = Route.useLoaderData();
 
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
-  }
-
-  if (isAdmin === false) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-md text-center border border-border bg-card p-8">
-          <h1 className="text-lg font-bold text-foreground">Not authorized</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Your account ({email}) is signed in but has no admin role.
-            Ask an existing admin to grant access, or — if this is the first admin —
-            run the following on the database via Cloud:
-          </p>
-          <pre className="mt-4 text-left text-[11px] bg-background p-3 overflow-x-auto rounded-sm font-mono">{`INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin' FROM auth.users WHERE email = '${email}';`}</pre>
-          <button onClick={signOut} className="mt-6 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground">
-            Sign out
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -76,11 +53,7 @@ SELECT id, 'admin' FROM auth.users WHERE email = '${email}';`}</pre>
         </div>
       </nav>
       <main className="max-w-7xl mx-auto px-6 py-10">
-        {isAdmin === null ? (
-          <div className="text-sm text-muted-foreground font-mono">Loading…</div>
-        ) : (
-          <Outlet />
-        )}
+        <Outlet />
       </main>
     </div>
   );
