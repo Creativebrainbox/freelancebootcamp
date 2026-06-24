@@ -220,13 +220,19 @@ export type Database = {
           total: number
         }[]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
+      get_public_settings: {
+        Args: never
+        Returns: {
+          bootcamp_name: string
+          daily_time: string
+          end_date: string
+          max_participants: number
+          registration_status: string
+          start_date: string
+          venue_address: string
+        }[]
       }
+      is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin"
