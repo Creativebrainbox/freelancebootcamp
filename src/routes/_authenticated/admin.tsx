@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
     const result = await checkAdminAccess();
     if (!result.isAdmin) {
-      throw redirect({ to: "/admin/access-denied" as never });
+      throw redirect({ to: "/access-denied" });
     }
     return { adminEmail: result.email ?? "" };
   },
