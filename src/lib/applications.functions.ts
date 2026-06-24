@@ -70,7 +70,7 @@ export const submitApplication = createServerFn({ method: "POST" })
     }
 
     const applicationId = crypto.randomUUID();
-    const { error } = await sb.from("applications").insert({ ...data, id: applicationId });
+    const { error } = await supabaseAdmin.from("applications").insert({ ...data, id: applicationId });
     if (error) {
       const msg = /duplicate|unique/i.test(error.message)
         ? "An application with this email or WhatsApp number already exists."
