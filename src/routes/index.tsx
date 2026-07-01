@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { submitApplication, getPublicStats } from "@/lib/applications.functions";
+import heroImage from "@/assets/hero-bootcamp.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
