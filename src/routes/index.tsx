@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { submitApplication, getPublicStats } from "@/lib/applications.functions";
+import heroImage from "@/assets/hero-bootcamp.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -78,10 +79,32 @@ function Nav({ stats }: { stats: Awaited<ReturnType<typeof getPublicStats>> | un
 function Hero({ stats, closed }: { stats: Awaited<ReturnType<typeof getPublicStats>> | undefined; closed: boolean }) {
   const max = stats?.settings?.max_participants ?? 0;
   const remaining = stats?.remaining_slots ?? 0;
-  const fmtDate = stats?.settings?.start_date ? new Date(stats.settings.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "TBA";
+  const venue = stats?.settings?.venue_address?.trim() || "Beside Adeyemo School\nOpposite Synergy Energy Petroleum";
+  const dailyTime = stats?.settings?.daily_time ?? "4:00 PM – 6:00 PM";
+
+  // Countdown target: use start_date from settings, otherwise 15 days from now
+  const target = useMemo(() => {
+    if (stats?.settings?.start_date) {
+      const d = new Date(stats.settings.start_date);
+      d.setHours(16, 0, 0, 0);
+      return d.getTime();
+    }
+    const d = new Date();
+    d.setDate(d.getDate() + 15);
+    return d.getTime();
+  }, [stats?.settings?.start_date]);
 
   return (
     <header className="relative py-24 border-b border-border overflow-hidden">
+      {/* Background image + overlays */}
+      <div className="absolute inset-0 z-0">
+        <img src={heroImage} alt="" width={1536} height={1024}
+          className="w-full h-full object-cover object-center opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/50" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-background/60" />
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+      </div>
+
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className={`inline-flex items-center gap-3 px-3 py-1 rounded-full border mb-8 ${closed ? "border-destructive/30 bg-destructive/5" : "border-primary/30 bg-brand-muted"}`}>
           <span className={`flex size-2 rounded-full ${closed ? "bg-destructive" : "bg-primary animate-ping"}`} />
@@ -95,7 +118,11 @@ function Hero({ stats, closed }: { stats: Awaited<ReturnType<typeof getPublicSta
         <p className="text-xl text-muted-foreground max-w-xl leading-relaxed mb-10">
           Learn in-demand freelancing skills, build your online profile, and discover how to start earning remotely — even as a beginner.
         </p>
-        <div className="flex flex-wrap gap-4 items-center">
+
+        {/* Countdown */}
+        <Countdown target={target} />
+
+        <div className="mt-10 flex flex-wrap gap-4 items-center">
           <a href="#apply" className={`px-8 py-4 font-mono font-bold text-sm uppercase tracking-tighter transition-all ${closed ? "bg-muted text-muted-foreground pointer-events-none" : "bg-primary text-primary-foreground hover:brightness-110"}`}>
             {closed ? "Closed" : "Initialize Application"}
           </a>
@@ -104,15 +131,84 @@ function Hero({ stats, closed }: { stats: Awaited<ReturnType<typeof getPublicSta
           </div>
         </div>
 
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-1">
-          <Metric label="Duration" value="5 Days" />
-          <Metric label="Time" value={stats?.settings?.daily_time ?? "4:00 PM – 6:00 PM"} />
-          <Metric label="Start Date" value={fmtDate} />
-          <Metric label="Applications" value={String(stats?.total_applications ?? 0)} />
+        {/* Trust indicators */}
+        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          {["Free Registration", "Physical Training", "Beginner Friendly", "Limited Seats Available"].map(t => (
+            <span key={t} className="flex items-center gap-2"><span className="text-primary">✓</span>{t}</span>
+          ))}
         </div>
+
+        {/* Stats */}
+        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-1">
+          <Metric label="Duration" value="5 Days" />
+          <Metric label="Training Time" value={dailyTime} />
+          <Metric label="Applications" value={String(stats?.total_applications ?? 0)} />
+          <Metric label="Seats Remaining" value={String(remaining)} />
+        </div>
+
+        {/* Venue card */}
+        <VenueCard venue={venue} dailyTime={dailyTime} />
       </div>
-      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
     </header>
+  );
+}
+
+function Countdown({ target }: { target: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = Math.max(0, target - now);
+  const started = diff === 0;
+  const s = Math.floor(diff / 1000);
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const seconds = s % 60;
+
+  if (started) {
+    return (
+      <div className="border border-primary/40 bg-brand-muted px-6 py-5 inline-block">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-primary">Status</div>
+        <div className="mt-1 text-2xl font-bold text-foreground">Bootcamp Starts Today</div>
+      </div>
+    );
+  }
+  const cells: [string, number][] = [["Days", days], ["Hours", hours], ["Minutes", minutes], ["Seconds", seconds]];
+  return (
+    <div>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3">Bootcamp Starts In</div>
+      <div className="grid grid-cols-4 gap-1 max-w-xl">
+        {cells.map(([label, val]) => (
+          <div key={label} className="border border-border bg-card/80 backdrop-blur-sm p-4 text-center">
+            <div className="text-3xl md:text-4xl font-mono font-bold text-primary tabular-nums">{String(val).padStart(2, "0")}</div>
+            <div className="mt-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VenueCard({ venue, dailyTime }: { venue: string; dailyTime: string }) {
+  return (
+    <div className="mt-10 border border-primary/40 bg-card/60 backdrop-blur-md p-6 md:p-8 grid md:grid-cols-2 gap-6 max-w-3xl">
+      <div>
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary mb-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4"><path d="M12 22s8-7.58 8-13a8 8 0 10-16 0c0 5.42 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+          Training Venue
+        </div>
+        <div className="text-foreground font-medium whitespace-pre-line leading-relaxed">{venue}</div>
+      </div>
+      <div>
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-primary mb-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Training Time
+        </div>
+        <div className="text-foreground font-medium">{dailyTime} Daily</div>
+      </div>
+    </div>
   );
 }
 
